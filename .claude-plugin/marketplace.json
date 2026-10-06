@@ -1,0 +1,14 @@
+{
+  "name": "david-mods",
+  "description": "David Balzan's Claude Code mods",
+  "owner": {
+    "name": "David Balzan"
+  },
+  "plugins": [
+    {
+      "name": "status-band",
+      "source": "./",
+      "description": "Status band above the Claude Code prompt: prompt-cache countdown, today's cost and plan limits, open PRs and the coord-bus seat"
+    }
+  ]
+}

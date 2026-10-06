@@ -1,0 +1,39 @@
+{
+  "name": "status-band",
+  "version": "0.2.0",
+  "description": "Status band above the Claude Code prompt: prompt-cache countdown, today's cost and plan limits, open PRs and the coord-bus seat",
+  "userConfig": {
+    "ttl": {
+      "type": "string",
+      "title": "Prompt cache TTL",
+      "description": "auto detects it from the cache's behaviour (assumes 5m until it has seen enough); 5m or 1h forces it",
+      "options": [
+        "auto",
+        "5m",
+        "1h"
+      ],
+      "default": "auto"
+    },
+    "showUsage": {
+      "type": "boolean",
+      "title": "Show cost and plan limits",
+      "description": "Today's cost across your sessions and the 5h / 7d plan-limit percentages",
+      "default": true
+    },
+    "showPrs": {
+      "type": "boolean",
+      "title": "Show open PRs",
+      "description": "The number of open PRs in this repo (needs the gh CLI)",
+      "default": true
+    },
+    "showBus": {
+      "type": "boolean",
+      "title": "Show coord bus row",
+      "description": "This seat on the agent-coord bus: id, rooms and unread (hidden when there is no bus)",
+      "default": true
+    }
+  },
+  "author": {
+    "name": "David Balzan"
+  }
+}
