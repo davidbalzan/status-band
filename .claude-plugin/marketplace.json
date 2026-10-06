@@ -1,6 +1,6 @@
 {
-  "name": "david-mods",
-  "description": "David Balzan's Claude Code mods",
+  "name": "status-band",
+  "description": "status-band: a Claude Code status band above the prompt",
   "owner": {
     "name": "David Balzan"
   },

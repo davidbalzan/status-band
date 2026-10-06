@@ -1,9 +1,4 @@
-# david-claude-mod
-
-Claude Code mods by David Balzan, as a plugin marketplace (`david-mods`). One plugin so far.
-
-## status-band
-
+# status-band
 A status band above the Claude Code prompt, drawn as one row when it fits and stacked when it does not:
 
 ```
@@ -21,16 +16,16 @@ When the terminal is narrow the segments shorten (`$4.12 · 7d 22%`, `⎇ 2 PRs`
 
 ### Install
 
-Until this is published, from a local clone:
+```
+/plugin marketplace add davidbalzan/status-band
+/plugin install status-band@status-band
+```
 
-```
-/plugin marketplace add /path/to/david-claude-mod
-/plugin install status-band@david-mods
-```
+From a local clone, use its path instead of `davidbalzan/status-band`.
 
 ### Options
 
-Set under `/plugin configure status-band@david-mods`.
+Set under `/plugin configure status-band@status-band`.
 
 | Option | Default | |
 | --- | --- | --- |
