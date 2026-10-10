@@ -4,6 +4,7 @@ import { busLine, busSegment, findJoin } from './bus'
 import { barColor, cacheSegment, describeCheck, formatRemaining, judgeTtl } from './cache'
 import { layoutRows, widthOf } from './pieces'
 import { parsePrs, prLine, prSegment } from './prs'
+import { parseRuns, runLine, runSegment } from './runs'
 import { backoff } from './schedule'
 import { costDelta, formatUsd, limitColor, limitLabel, localDay, usageSegment } from './usage'
 
@@ -63,6 +64,21 @@ test('counts open and draft PRs from gh output', () => {
 test('words the PR count', () => {
   expect(prLine({ open: 1, drafts: 0 })).toBe('1 open PR')
   expect(prLine({ open: 3, drafts: 1 })).toBe('3 open PRs (1 draft)')
+})
+
+test('counts queued and running Actions runs from gh output', () => {
+  const out = '[{"status":"queued"},{"status":"waiting"},{"status":"in_progress"},{"status":"completed"}]'
+
+  expect(parseRuns(out)).toEqual({ queued: 2, running: 1 })
+  expect(parseRuns('[]')).toEqual({ queued: 0, running: 0 })
+  expect(parseRuns('not json')).toBeNull()
+  expect(parseRuns('{"message":"error"}')).toBeNull()
+})
+
+test('words the run count', () => {
+  expect(runLine({ queued: 0, running: 0 })).toBe('0 queued')
+  expect(runLine({ queued: 3, running: 1 })).toBe('3 queued · 1 running')
+  expect(text(runSegment({ queued: 3, running: 1 }).short)).toBe('▶ 3 queued')
 })
 
 const call = (name: string, input: Record<string, unknown>) => ({

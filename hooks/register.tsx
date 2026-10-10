@@ -4,6 +4,7 @@ import { busSegment, findJoin, parseJsonBlock, type Bus, type WhoamiView } from 
 import { cacheSegment, describeCheck, isTtl, judgeTtl, TTL_MS, type CacheState, type Ttl } from './cache'
 import { layoutRows } from './pieces'
 import { parsePrs, prSegment, type PrCount } from './prs'
+import { parseRuns, runSegment, type RunCount } from './runs'
 import { backoff } from './schedule'
 import { costDelta, localDay, usageSegment, type PlanLimit } from './usage'
 
@@ -19,12 +20,14 @@ const USAGE_MS = 30_000
 const OTHER_SESSIONS_MS = 120_000
 const PR_REFRESH_MS = 5 * 60_000
 const PR_SETTLE_MS = 10_000
+const RUNS_REFRESH_MS = 60_000
 const BACKOFF_MAX_MS = 10 * 60_000
 
 export const register: Register = (on, options) => {
   const configured = isTtl(options.ttl) ? options.ttl : null
   const showBus = options.showBus !== false
   const showPrs = options.showPrs !== false
+  const showRuns = options.showRuns !== false
   const showUsage = options.showUsage !== false
 
   // Cache: every API response refreshes it, so the clock restarts at each one.
@@ -65,6 +68,11 @@ export const register: Register = (on, options) => {
   let prs: PrCount | null = null
   let prsDueAt = 0
   let prsDelayMs = PR_REFRESH_MS
+
+  // GitHub Actions runs waiting for or occupying a runner
+  let runs: RunCount | null = null
+  let runsDueAt = 0
+  let runsDelayMs = RUNS_REFRESH_MS
 
   on('classic.SessionStart', async ($, e, next) => {
     if (e.seconds_since_last_response !== undefined) {
@@ -116,7 +124,10 @@ export const register: Register = (on, options) => {
   // A PR changes when this agent pushes or runs gh, so that is when the count is worth refetching early.
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
     if (/\bgh\s+pr\b|\bgit\s+push\b/.test(e.command)) {
-      prsDueAt = Math.min(prsDueAt, (await $.clock.now()) + PR_SETTLE_MS)
+      const soon = (await $.clock.now()) + PR_SETTLE_MS
+
+      prsDueAt = Math.min(prsDueAt, soon)
+      runsDueAt = Math.min(runsDueAt, soon)
     }
 
     return next(e)
@@ -307,6 +318,30 @@ export const register: Register = (on, options) => {
           prsDueAt = now + prsDelayMs
         }
 
+        if (showRuns && now >= runsDueAt) {
+          const repo = await $.session.repo()
+
+          if (!repo?.remote) {
+            isChanged ||= runs !== null
+            runs = null
+            runsDelayMs = RUNS_REFRESH_MS
+          } else {
+            const ran = await $.process
+              .run(['gh', 'run', 'list', '--limit', '100', '--json', 'status'], {
+                cwd: repo.root,
+                timeoutMs: 15_000,
+              })
+              .catch(() => null)
+            const counted = ran?.exitCode === 0 ? parseRuns(ran.stdout) : null
+
+            runsDelayMs = counted ? RUNS_REFRESH_MS : backoff(runsDelayMs, RUNS_REFRESH_MS, BACKOFF_MAX_MS)
+            isChanged ||= counted !== null && (counted.queued !== runs?.queued || counted.running !== runs?.running)
+            runs = counted ?? runs
+          }
+
+          runsDueAt = now + runsDelayMs
+        }
+
         if (isChanged) {
           $.ui.invalidate('ui.render')
         }
@@ -347,6 +382,7 @@ export const register: Register = (on, options) => {
       cacheSegment(cacheState),
       ...(usage ? [usage] : []),
       ...(showPrs && prs ? [prSegment(prs)] : []),
+      ...(showRuns && runs ? [runSegment(runs)] : []),
       ...(showBus && bus ? [busSegment(bus)] : []),
     ])
 
